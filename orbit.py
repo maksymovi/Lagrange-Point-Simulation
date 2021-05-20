@@ -132,5 +132,5 @@ def onlyPhysics(): #simulate without rendering, probably useful if you want to f
 
         
 #stolen from http://zulko.github.io/blog/2014/11/13/things-you-can-do-with-python-and-pov-ray/
-VideoClip(createFrame, duration=simulationTime).write_videofile(videoname, fps=framerate)
-#onlyPhysics()
+#VideoClip(createFrame, duration=simulationTime).write_videofile(videoname, fps=framerate)
+onlyPhysics()
