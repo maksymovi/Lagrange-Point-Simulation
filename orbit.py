@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from mpl_toolkits import mplot3d
-import matplotlib.pyplot as plt
-from matplotlib import animation
+from vapory import *
 from math import sqrt
+from moviepy.editor import VideoClip
+
 #each object has 2 3 vectors, first for position second for velocity.
 
 
@@ -12,23 +12,36 @@ from math import sqrt
 
 #sampling frequency in hertz
 
-sampleFreq = 100;
+sampleFreq = 1000;
 
 #Gravity constant, increase for stronger gravity, or increase the mass
 
-Gconst = 10;
+Gconst = 100;
 
 #simulation time in seconds
 
-simulationTime = 10;
+simulationTime = 120;
 
-#frame per second of video
-#ideally should be a mutiple of simulationFreq, must be greater than samplefreq though
-fps = 30;
+#video steeings
+#ideally framerate should divide sampleFreq, it must not be greater than sampleFreq, code breaks if so
+framerate = 30;
+frameheight = 1080
+framewidth = 1920
+videoname="anim3.mp4"
+
+#rendering settings
+#texture for sphere, currently purple.
+tex = Texture( Pigment( 'color', [1, 0, 1] )) #standard texture for sphere
+camera = Camera( 'location', [0, 20, -30], 'look_at', [0, 0, 0] ) #camera location
+light = LightSource( [2, 4, -3], 'color', [1, 1, 1] ) #light location and angle/color
 
 
-#DONE
 
+
+
+
+
+#simulation code below
 class Orbitor:
     def __init__(self, initPos, initVel, mass):
         self.position = initPos; #3 list
@@ -36,45 +49,24 @@ class Orbitor:
         self.mass = mass;
 
 orbitorList = []
+def addObject(position, velocity, mass):
+    orbitorList.append(Orbitor(position, velocity, mass))
 
 
 #ORBITOR LIST
-#EDIT HERE
-orbitorList.append(Orbitor([1, 0, 0], [0, 1, 0], 1))
-orbitorList.append(Orbitor([-1, 0, 0], [0, -1, 0], 1))
+#add as many objects as you want here,
+#syntax is addObject(position, velocity, mass)
+#position and velocity are written as [x, y, z] 
+addObject([10, 0, 0], [0, 1, 0], 1)
+addObject([-10, 0, 0], [0, -1, 0], 1)
+addObject([0, 10, 0], [0, 0, -1], 1)
+addObject([0, -10, 0], [0, 0, 1], 1)
 
 
 
-#initialize the figure to plot on.
-fig = plt.figure()
-ax = plt.axes(projection='3d')
 
-
-
-def getcoords():
-
-    x = []
-    y = []
-    z = []
-    mass = []
-    for i in orbitorList:
-        x.append(i.position[0])
-        y.append(i.position[1])
-        z.append(i.position[2])
-        mass.append(i.mass)
-    
-    return (x, y, z, mass)
-
-
-curx, cury, curz, mass = getcoords()
-
-points = ax.scatter(curx, cury, curz, s=mass, marker='o') 
-
-
-#we doing this functionally apparently
-#need an argument here for functional reasons
-def generateMovement(unused):
-    for curframe in range(sampleFreq//fps): #simulate movement to next frame
+def stepDiffeq():
+    for curframe in range(sampleFreq//framerate): #simulate movement to next frame
         print("Simulating ", curframe)
         #the actual physics simulation
         for current in orbitorList:
@@ -101,20 +93,30 @@ def generateMovement(unused):
                         current.velocity[i] += vector[i] * acceleration
                         #velocity acceleration calculated
                         #display code here, there is a better way to loop this but im lazy
-    #calculate frame to return here
-    x, y, z, mass = getcoords()
+    return
+
+
+def createScene():
+    
     
 
-    print("frame ", unused)
-    points.set_data(x, y)
-    points.set_3d_properties(z)
-    return points
-    #ax.clear();
-    #return ax.scatter(x, y, z, mass, marker = ".") #return things to plot
+    objs = [light]
 
-#stolen from https://jakevdp.github.io/blog/2012/08/18/matplotlib-animation-tutorial/
-anim = animation.FuncAnimation(fig, generateMovement, frames=fps*simulationTime, interval = 100//fps)
+    #add all the objects in
 
-anim.save('anim.mp4', fps=fps, extra_args=['-vcodec', 'libx264'])
+    for i in orbitorList:
+        objs.append(Sphere([i.position[0], i.position[1], i.position[2]], sqrt(i.mass), tex))
+    return Scene(camera, objects=objs)
 
-#plt.show()
+def renderScene(sn):
+    return sn.render(width=framewidth, height=frameheight, antialiasing=0.001)
+
+#we doing this functionally apparently
+#need an argument here for functional reasons
+    
+def createFrame(unused):
+    stepDiffeq()
+    return renderScene(createScene())
+#stolen from http://zulko.github.io/blog/2014/11/13/things-you-can-do-with-python-and-pov-ray/
+VideoClip(createFrame, duration=simulationTime).write_videofile(videoname, fps=framerate)
+
